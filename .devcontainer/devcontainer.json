@@ -1,10 +1,10 @@
 {
-  "name": "Julia",
-  "image": "juliadocker/julia:1.10-bullseye",
+  "name": "Julia 1.10 (Bookworm)",
+  "image": "docker.io/library/julia:1.10-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
-  "postCreateCommand": "julia -e 'using Pkg; Pkg.activate(\".\"); Pkg.instantiate()'",
+  "postCreateCommand": "julia -e 'using Pkg; Pkg.activate(\".\"); Pkg.instantiate(); Pkg.precompile()'",
   "customizations": {
     "vscode": {
       "extensions": ["julialang.language-julia"]
