@@ -57,13 +57,28 @@ function summarize_homophily(g::SimpleGraph, label_code::Vector{Int}, K::Int; la
     r = categorical_assortativity(g, label_code, K)         # assortativity coefficient
     H = node_homophily(g, label_code)
     Hnz = H[.!isnan.(H)]
-    percat = [sum(e[i, i]) / sum(e[i, :]) for i in 1:K]     # per-category internal share (Vector{Float64} of length K)
+    percat = [sum(e[i, i]) / sum(e[i, :]) for i in 1:K]     # per-category internal share
+
+    # --- Print summary ---
+    println("\n====== HOMOPHILY SUMMARY ======")
+    println("Edge homophily (same-category edge share): ", round(edge_h, digits=4))
+    println("Random-mixing baseline (Σ pₖ²): ", round(base, digits=4))
+    println("Homophily ratio (observed / baseline): ", round(edge_h / base, digits=3))
+    println("Assortativity (r): ", round(r, digits=3))
+    println("Mean node-level homophily: ", round(mean(Hnz), digits=3))
+    println("Median node-level homophily: ", round(median(Hnz), digits=3))
+    if label_levels !== nothing
+        println("\nPer-category internal edge share:")
+        for i in 1:K
+            println("  ", label_levels[i], ": ", round(percat[i], digits=3))
+        end
+    end
+    println("=================================\n")
+
     return (; edge_h, base, ratio = edge_h / base, r,
-            H_mean = mean(Hnz), H_median = median(Hnz),     # node-level homophily stats
+            H_mean = mean(Hnz), H_median = median(Hnz),
             percat, freqs)
 end
-
-
 
 export summarize_homophily
 end # module

@@ -130,7 +130,7 @@ function preprocess(edges_path::AbstractString, targets_path::AbstractString, fe
     K = length(label_levels)
     X, F, zero_based = build_feature_matrix(features, all_ids, id2idx)
 
-    return (; g, labels, label_code, label_levels, X, K, id2idx, all_ids, F, zero_based)
+    return (; g, labels, label_code, label_levels, X, K, id2idx, all_ids, F, zero_based, targets_df)
 end
 
 export load_raw, resolve_edge_columns, resolve_target_columns,
