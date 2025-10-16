@@ -106,7 +106,7 @@ function summarize_bridges(g::SimpleGraph; top_n::Int=10, meta::Union{Nothing,Da
     println("\nInterpretation:")
     println("• Participation captures how evenly a node’s ties spread across communities.")
     println("• High betweenness + high participation ⇒ strong cross-community connector.")
-    return top
+    return (; top, comms, btw, pc)
 end
 
 export detect_communities, participation_coefficients, bridge_table, summarize_bridges
