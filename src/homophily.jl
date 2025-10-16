@@ -1,6 +1,6 @@
 module NetworkMetrics
 
-using Graphs, StatsBase, Statistics
+using Graphs, StatsBase, Statistics, LinearAlgebra
 
 # ---------------------------
 # HOMOPHILY
@@ -28,10 +28,10 @@ end
 function categorical_assortativity(g::Graphs.SimpleGraph, label_code::Vector{Int}, K::Int)
     e = categorical_mixing_matrix(g, label_code, K)
     a = vec(sum(e, dims=2))
-    tr = sum(diag(e))
+    tr_e = tr(e)
     a2 = sum(a .^ 2)
     denom = 1.0 - a2
-    return iszero(denom) ? 0.0 : (tr - a2) / denom
+    return iszero(denom) ? 0.0 : (tr_e - a2) / denom
 end
 
 # --- Node-level homophily (share of neighbors with same label) ---
@@ -51,7 +51,7 @@ end
 # --- Return summary of homophily ---
 function summarize_homophily(g::SimpleGraph, label_code::Vector{Int}, K::Int; label_levels=nothing)
     e = categorical_mixing_matrix(g, label_code, K)
-    edge_h = sum(diag(e))                                   # observed same-category edge share
+    edge_h = tr(e)                                   # observed same-category edge share
     freqs = counts(label_code, 1:K) ./ length(label_code)   # category frequencies p_k
     base = sum(freqs .^ 2)                                  # random-mixing baseline
     r = categorical_assortativity(g, label_code, K)         # assortativity coefficient
@@ -62,19 +62,6 @@ function summarize_homophily(g::SimpleGraph, label_code::Vector{Int}, K::Int; la
             H_mean = mean(Hnz), H_median = median(Hnz),     # node-level homophily stats
             percat, freqs)
 end
-
-
-# ---------------------------
-# STRUCTURAL BALANCE
-# ---------------------------
-# functions: triad_signs, balance_ratio, structural_balance_summary
-
-
-
-# ---------------------------
-# STRUCTURAL BRIDGES
-# ---------------------------
-# functions: edge_betweenness, bridge_edges, bridging_nodes, etc.
 
 
 

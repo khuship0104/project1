@@ -116,9 +116,7 @@ end
 # ---------------------------
 # One-Shot convenience
 # ---------------------------
-function preprocess(edges_path::AbstractString,
-                    targets_path::AbstractString,
-                    features_path::AbstractString)
+function preprocess(edges_path::AbstractString, targets_path::AbstractString, features_path::AbstractString)
     edges_df, targets_df, features_raw = load_raw(edges_path, targets_path, features_path)
     features = Dict(string(k) => v for (k, v) in pairs(features_raw))
 
@@ -129,9 +127,10 @@ function preprocess(edges_path::AbstractString,
     g = build_graph(edges_df, id2idx, src_col, dst_col)
 
     labels, label_code, label_levels = build_labels(targets_df, all_ids, id_col, label_col)
+    K = length(label_levels)
     X, F, zero_based = build_feature_matrix(features, all_ids, id2idx)
 
-    return (; g, labels, label_code, label_levels, X, id2idx, all_ids, F, zero_based)
+    return (; g, labels, label_code, label_levels, X, K, id2idx, all_ids, F, zero_based)
 end
 
 export load_raw, resolve_edge_columns, resolve_target_columns,
