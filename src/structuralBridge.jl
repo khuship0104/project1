@@ -1,37 +1,27 @@
 module NetworkBridge
 
-using Graphs, DataFrames, StatsBase
+using Graphs, DataFrames, StatsBase, Statistics, Printf
 
-# --- 1) Community detection (Louvain/Leiden if available, fallback to label propagation)
-"""
-    detect_communities(g::SimpleGraph) -> Vector{Int}
-
-Returns a vector of community labels (1..K). Tries CommunityDetection.jl (Louvain/Leiden),
-falls back to Graphs.jl's `label_propagation`.
-"""
+# --- 1️⃣ Detect Communities ---
 function detect_communities(g::SimpleGraph)
     labs = nothing
     try
         @eval using CommunityDetection
-        # Prefer Louvain; if you want Leiden instead, swap the next line.
         labs = CommunityDetection.labels(CommunityDetection.louvain(g))
     catch
-        @warn "CommunityDetection.jl not found; using Graphs.label_propagation"
+        @warn "CommunityDetection.jl not found; using Graphs.label_propagation instead."
         labs = label_propagation(g)
     end
     labs isa Tuple ? first(labs) : labs
 end
 
-# --- 2) Participation coefficient
-# PC_i = 1 - Σ_s (k_is / k_i)^2, where k_is is degree of i to comm s
+# --- 2️⃣ Participation Coefficients ---
 function participation_coefficients(g::SimpleGraph, comms::AbstractVector{<:Integer})
     n = nv(g)
-    # normalize labels to 1..K for safe indexing
     uniq = unique(comms)
     remap = Dict(uniq[i] => i for i in eachindex(uniq))
     C = length(uniq)
     comm = [remap[c] for c in comms]
-
     deg = degree(g)
     k_is = zeros(Float64, n, C)
 
@@ -43,72 +33,69 @@ function participation_coefficients(g::SimpleGraph, comms::AbstractVector{<:Inte
 
     pc = similar(deg, Float64)
     @inbounds for i in 1:n
-        k = max(deg[i], 1)                        # avoid divide-by-zero
-        pc[i] = 1.0 - sum((k_is[i, :] ./ k).^2)   # participation coefficient
+        k = max(deg[i], 1)
+        pc[i] = 1.0 - sum((k_is[i, :] ./ k).^2)
     end
     pc
 end
 
-# --- 3) Bridge ranking = z(betweenness) + z(participation)
-"""
-    bridge_table(g::SimpleGraph; top_n=10)
+# --- 3️⃣ Normalize helper ---
+normalize(x::AbstractVector) = (x .- minimum(x)) ./ (maximum(x) - minimum(x) + eps())
 
-Returns a DataFrame with node, community, betweenness, participation, and bridge_score,
-sorted by bridge_score (descending).
-"""
-function bridge_table(g::SimpleGraph; top_n::Int=10)
+# --- 4️⃣ Summarize Bridges ---
+function summarize_bridges(
+    g::SimpleGraph;
+    top_n::Int=10,
+    targets_df::Union{Nothing,DataFrame}=nothing,
+    id2idx::Union{Nothing,Dict}=nothing,
+    labels::Union{Nothing,AbstractVector}=nothing
+)
+    println("🔹 Computing community structure and bridge scores...")
+
+    # --- Compute metrics ---
     comms = detect_communities(g)
-    btw   = betweenness_centrality(g)
     pc    = participation_coefficients(g, comms)
+    btw   = betweenness_centrality(g)
+    score = normalize(pc) .+ normalize(btw)
 
-    # z-score both, then sum
-    score = zscore(btw) .+ zscore(pc)
-
+    # --- Build Base DataFrame ---
     df = DataFrame(
-        node          = 1:nv(g),
-        community     = comms,
-        betweenness   = btw,
+        node = 1:nv(g),
+        bridge_score = score,
         participation = pc,
-        bridge_score  = score,
+        betweenness = btw
     )
-    sort!(df, :bridge_score, rev=true)
-    first(df, min(top_n, nrow(df)))
-end
 
-"""
-    summarize_bridges(g::SimpleGraph; top_n=10, meta::Union{Nothing,DataFrame}=nothing)
+    # --- Add original Facebook IDs ---
+    if id2idx !== nothing
+        idx2id = Dict(v => k for (k, v) in id2idx)
+        df.original_id = [idx2id[i] for i in 1:nv(g)]
+    else
+        df.original_id = missing
+    end
 
-Prints a tiny summary and returns the ranked table. If you pass `meta` with an `:id`
-column (matching node ids) and optional `:page_name`/`:page_type`, they’ll be joined.
-"""
-function summarize_bridges(g::SimpleGraph; top_n::Int=10, meta::Union{Nothing,DataFrame}=nothing)
-    comms = detect_communities(g)
-    btw   = betweenness_centrality(g)
-    pc    = participation_coefficients(g, comms)
-    score = zscore(btw) .+ zscore(pc)
+    # --- Attach Page Type ---
+    if labels !== nothing
+        # Directly aligned from preprocessing
+        df.page_type = labels
+    elseif targets_df !== nothing && id2idx !== nothing
+        idx2id = Dict(v => k for (k, v) in id2idx)
+        page_lookup = Dict(targets_df.id .=> targets_df.page_type)
+        df.page_type = [get(page_lookup, idx2id[i], "Unknown") for i in 1:nv(g)]
+    else
+        df.page_type = ["Unknown" for _ in 1:nv(g)]
+    end
 
-    println("Nodes: $(nv(g))   Edges: $(ne(g))   Communities: $(length(unique(comms)))")
-    println("Betweenness: mean=$(round(mean(btw), digits=4))  max=$(round(maximum(btw), digits=4))")
-
-    df = DataFrame(node=1:nv(g), community=comms, betweenness=btw,
-                   participation=pc, bridge_score=score)
+    # --- Sort and Display ---
     sort!(df, :bridge_score, rev=true)
     top = first(df, min(top_n, nrow(df)))
 
-    if meta !== nothing && :id ∈ names(meta)
-        keep = intersect([:id, :page_name, :page_type], names(meta))
-        ren  = Dict(:id=>:node)
-        top  = leftjoin(top, rename(select(meta, keep), ren; ignore=true), on=:node)
-    end
+    println("\n====== TOP STRUCTURAL BRIDGES ======")
+    show(top, allrows=true, allcols=true, truncate=80)
 
-    println("\nTop $(nrow(top)) structural bridges (high betweenness + high participation):")
-    show(select(top, names(top)); allrows=true, truncate=100)
-    println("\nInterpretation:")
-    println("• Participation captures how evenly a node’s ties spread across communities.")
-    println("• High betweenness + high participation ⇒ strong cross-community connector.")
-    return (; top, comms, btw, pc)
+    return (top=top, comms=comms, btw=btw, pc=pc, df=df)
 end
 
-export detect_communities, participation_coefficients, bridge_table, summarize_bridges
+export summarize_bridges, detect_communities, participation_coefficients
 
 end # module
