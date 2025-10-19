@@ -1,7 +1,7 @@
 # Project 1: Computational Analysis of a Facebook Page-Page Network
 
 **Course:** CAP 6318 - Computational Analysis of Social Complexity  
-**Team Members:** Boopathiraj Balasubramani,Kushi Patel
+**Team Members:** Boopathiraj Balasubramani, Khushi Patel
 
 
 
