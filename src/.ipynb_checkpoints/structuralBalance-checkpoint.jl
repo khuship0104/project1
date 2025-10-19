@@ -2,18 +2,23 @@ module NetworkBalance
 
 using Graphs, StatsBase, Statistics, Random
 
+# ---------------------------
+# STRUCTURAL BALANCE
+# ---------------------------
+# functions: triad_signs, balance_ratio, friend_of_friend_positive_closure, structural_balance_summary
 
+# --- helper: edge sign ---
 @inline edge_sign(u::Int, v::Int, label_code::Vector{Int}) =
     (label_code[u] == label_code[v]) ? 1 : -1
 
-# enumerate all triangles and return edge-sign triplets ---
+# --- enumerate all triangles and return edge-sign triplets ---
 function triad_signs(g::SimpleGraph, label_code::Vector{Int})
     ts = Tuple{Int,Int,Int}[]
     nverts = nv(g)
     @inbounds for u in 1:nverts
         nu = neighbors(g, u)
         for v in nu
-            v <= u && continue 
+            v <= u && continue  # enforce u < v
             nv_ = neighbors(g, v)
 
             # two-pointer intersection (neighbors sorted)

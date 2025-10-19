@@ -2,7 +2,7 @@ module NetworkBridge
 
 using Graphs, DataFrames, StatsBase, Statistics, Printf
 
-#  Detect Communities ---
+# --- 1️⃣ Detect Communities ---
 function detect_communities(g::SimpleGraph)
     labs = nothing
     try
@@ -15,7 +15,7 @@ function detect_communities(g::SimpleGraph)
     labs isa Tuple ? first(labs) : labs
 end
 
-# Participation Coefficients ---
+# --- 2️⃣ Participation Coefficients ---
 function participation_coefficients(g::SimpleGraph, comms::AbstractVector{<:Integer})
     n = nv(g)
     uniq = unique(comms)
@@ -39,10 +39,10 @@ function participation_coefficients(g::SimpleGraph, comms::AbstractVector{<:Inte
     pc
 end
 
-#  Normalize helper ---
+# --- 3️⃣ Normalize helper ---
 normalize(x::AbstractVector) = (x .- minimum(x)) ./ (maximum(x) - minimum(x) + eps())
 
-# Summarize Bridges ---
+# --- 4️⃣ Summarize Bridges ---
 function summarize_bridges(
     g::SimpleGraph;
     top_n::Int=10,
@@ -50,15 +50,15 @@ function summarize_bridges(
     id2idx::Union{Nothing,Dict}=nothing,
     labels::Union{Nothing,AbstractVector}=nothing
 )
-    println("Computing community structure and bridge scores...")
+    println("🔹 Computing community structure and bridge scores...")
 
-    #  Compute metrics ---
+    # --- Compute metrics ---
     comms = detect_communities(g)
     pc    = participation_coefficients(g, comms)
     btw   = betweenness_centrality(g)
     score = normalize(pc) .+ normalize(btw)
 
-    # Build Base DataFrame ---
+    # --- Build Base DataFrame ---
     df = DataFrame(
         node = 1:nv(g),
         bridge_score = score,
@@ -66,7 +66,7 @@ function summarize_bridges(
         betweenness = btw
     )
 
-    #  Add original Facebook IDs ---
+    # --- Add original Facebook IDs ---
     if id2idx !== nothing
         idx2id = Dict(v => k for (k, v) in id2idx)
         df.original_id = [idx2id[i] for i in 1:nv(g)]
@@ -74,7 +74,7 @@ function summarize_bridges(
         df.original_id = missing
     end
 
-    #Attach Page Type ---
+    # --- Attach Page Type ---
     if labels !== nothing
         # Directly aligned from preprocessing
         df.page_type = labels
@@ -86,7 +86,7 @@ function summarize_bridges(
         df.page_type = ["Unknown" for _ in 1:nv(g)]
     end
 
-    # Sort and Display ---
+    # --- Sort and Display ---
     sort!(df, :bridge_score, rev=true)
     top = first(df, min(top_n, nrow(df)))
 

@@ -88,7 +88,7 @@ end
 # ---------------------------
 function build_feature_matrix(features::Dict, all_ids::Vector{Int}, id2idx::Dict{Int,Int})
     node_keys = collect(keys(features))
-    node_ids_in_feat = parse.(Int, string.(node_keys))  
+    node_ids_in_feat = parse.(Int, string.(node_keys))  # normalize keys -> Int
     feat_lists = [features[k] for k in node_keys]
 
     max_feat = maximum(Iterators.flatten(feat_lists))

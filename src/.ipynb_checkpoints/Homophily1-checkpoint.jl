@@ -62,7 +62,7 @@ function compute_homophily(g::SimpleGraph, labels::Vector{Int}, category_map::Di
     observed = observed_homophily(g, labels)
     ratio = observed / chance
 
-    println("\n Overall Homophily Results")
+    println("\n🌐 Overall Homophily Results")
     println("-------------------------------------")
     println("Chance Homophily   : ", round(chance, digits=4))
     println("Observed Homophily : ", round(observed, digits=4))
@@ -70,7 +70,7 @@ function compute_homophily(g::SimpleGraph, labels::Vector{Int}, category_map::Di
     println("-------------------------------------\n")
 
     # Category-wise metrics
-    println(" Category-wise Homophily:")
+    println("📊 Category-wise Homophily:")
     println("Category        | Observed | Chance | Ratio")
     println("----------------|----------|--------|-------")
 
