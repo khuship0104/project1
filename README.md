@@ -34,8 +34,11 @@ This project is built as a reproducible Julia environment.
     * Open `project1.ipynb` in your Jupyter environment.
     * Run the cells sequentially from top to bottom to replicate the analysis and generate all results and visualizations.
 
+## Warnings
 
+1.  Due to the size of the dataset, computing structural bridges will take 5-10 minutes. Please be patient with it.
 
+   
 ## Key Findings
 
 1.  **Strong Homophily:** The network exhibits strong homophily. Pages are **3.34 times more likely** to connect with other pages from the same category than expected by chance (0.885 observed homophily vs. 0.265 chance). This effect is strongest for "TV Shows" (32.99x) and "Politicians" (11.64x).
