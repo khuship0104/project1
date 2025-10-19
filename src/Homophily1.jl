@@ -1,7 +1,7 @@
 module Homophily
 
 using Graphs
-using LinearAlgebra, Statistics
+using LinearAlgebra, Statistics, Printf
 
 export compute_homophily, chance_homophily, observed_homophily, category_homophily
 
@@ -70,19 +70,16 @@ function compute_homophily(g::SimpleGraph, labels::Vector{Int}, category_map::Di
     println("-------------------------------------\n")
 
     # Category-wise metrics
-    println(" Category-wise Homophily:")
-    println("Category        | Observed | Chance | Ratio")
-    println("----------------|----------|--------|-------")
+    println("Category-wise Homophily:")
+    println("Category        | Observed | Chance   | Ratio")
+    println("----------------|----------|----------|-------")
 
     for (name, cid) in category_map
         obs = category_homophily(g, labels, cid)
         chance_c = (count(==(cid), labels) / nv(g))^2
         ratio_c = chance_c == 0 ? 0.0 : obs / chance_c
 
-        println(rpad(name, 15), "| ",
-                round(obs, digits=4), "  | ",
-                round(chance_c, digits=4), " | ",
-                round(ratio_c, digits=2))
+        @printf("%-15s | %8.4f | %8.4f | %6.2f\n", name, obs, chance_c, ratio_c)
     end
 
     return (; observed, chance, ratio)
